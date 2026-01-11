@@ -143,9 +143,9 @@ def get_ti(input, labels=None, dataset='cifar'):
             offset1 = int(t * 5)
             offset2 = int((t + 1) * 5)
             if offset1 > 0:
-                input[lid, :offset1].data.fill_(-10e10)
+                input[lid, :offset1].data.fill_(-float('inf'))
             if offset2 < 100:
-                input[lid, offset2:100].data.fill_(-10e10)
+                input[lid, offset2:100].data.fill_(-float('inf'))
     else:
         pass
     return input

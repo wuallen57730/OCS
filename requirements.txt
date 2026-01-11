@@ -10,3 +10,4 @@ torch>=2.0.0
 torchsummary>=1.5.1
 torchvision>=0.15.0
 tqdm>=4.65.0
+neural-tangents>=0.6.2

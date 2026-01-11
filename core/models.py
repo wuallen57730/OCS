@@ -179,18 +179,18 @@ class ResNet(nn.Module):
             offset1 = int((t-1) * 5)
             offset2 = int(t * 5)
             if offset1 > 0:
-                out[:, :offset1].data.fill_(-10e10)
+                out[:, :offset1].data.fill_(-float('inf'))
             if offset2 < 100:
-                out[:, offset2:100].data.fill_(-10e10)
+                out[:, offset2:100].data.fill_(-float('inf'))
             return out
         else:
             offsets = [sum(self.config['n_classes'][:c]) for c in range(1,len(self.config['n_classes'])+1)]
             offset1 = int(offsets[t-1])
             offset2 = int(offsets[t])
             if offset1 > 0:
-                out[:, :offset1].data.fill_(-10e10)
+                out[:, :offset1].data.fill_(-float('inf'))
             if offset2 < offsets[-1]:
-                out[:, offset2:offsets[-1]].data.fill_(-10e10)
+                out[:, offset2:offsets[-1]].data.fill_(-float('inf'))
             return out
 
 

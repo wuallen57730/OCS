@@ -1,32 +1,49 @@
 import numpy as np
-from jax.api import jit
-from neural_tangents import stax
 
-init_fn, apply_fn, kernel_fn = stax.serial(
-    stax.Dense(100, 1., 0.05),
-    stax.Relu(),
-    stax.Dense(100, 1., 0.05),
-    stax.Relu(),
-    stax.Dense(10, 1., 0.05))
-fnn_kernel_fn = jit(kernel_fn, static_argnums=(2,))
+try:
+    import jax
+    from jax import jit
+    from neural_tangents import stax
+    HAS_NEURAL_TANGENTS = True
+except ImportError:
+    HAS_NEURAL_TANGENTS = False
+    # Define dummy functions and variables to avoid ImportErrors
+    jit = lambda x, **kwargs: x
+    stax = None
 
-_, _, kernel_fn = stax.serial(
-    stax.Conv(32, (5, 5), (1, 1), padding='SAME', W_std=1., b_std=0.05),
-    stax.Relu(),
-    stax.Conv(64, (5, 5), (1, 1), padding='SAME', W_std=1., b_std=0.05),
-    stax.Relu(),
-    stax.Flatten(),
-    stax.Dense(128, 1., 0.05),
-    stax.Relu(),
-    stax.Dense(10, 1., 0.05))
-cnn_kernel_fn = jit(kernel_fn, static_argnums=(2,))
+if HAS_NEURAL_TANGENTS:
+    init_fn, apply_fn, kernel_fn = stax.serial(
+        stax.Dense(100, 1., 0.05),
+        stax.Relu(),
+        stax.Dense(100, 1., 0.05),
+        stax.Relu(),
+        stax.Dense(10, 1., 0.05))
+    fnn_kernel_fn = jit(kernel_fn, static_argnums=(2,))
+
+    _, _, kernel_fn = stax.serial(
+        stax.Conv(32, (5, 5), (1, 1), padding='SAME', W_std=1., b_std=0.05),
+        stax.Relu(),
+        stax.Conv(64, (5, 5), (1, 1), padding='SAME', W_std=1., b_std=0.05),
+        stax.Relu(),
+        stax.Flatten(),
+        stax.Dense(128, 1., 0.05),
+        stax.Relu(),
+        stax.Dense(10, 1., 0.05))
+    cnn_kernel_fn = jit(kernel_fn, static_argnums=(2,))
+else:
+    fnn_kernel_fn = None
+    cnn_kernel_fn = None
 
 
 def generate_fnn_ntk(X, Y):
+    if not HAS_NEURAL_TANGENTS:
+        raise ImportError("neural_tangents library is required for generating FNN NTK.")
     return np.array(fnn_kernel_fn(X, Y, 'ntk'))
 
 
 def generate_cnn_ntk(X, Y):
+    if not HAS_NEURAL_TANGENTS:
+        raise ImportError("neural_tangents library is required for generating CNN NTK.")
     n = X.shape[0]
     m = Y.shape[0]
     K = np.zeros((n, m))
@@ -55,6 +72,8 @@ def ResnetGroup(n, channels, strides=(1, 1)):
 
 
 def Resnet(block_size, num_classes):
+    if not HAS_NEURAL_TANGENTS:
+        return None
     return stax.serial(
         stax.Conv(64, (3, 3), padding='SAME'),
         ResnetGroup(block_size, 64),
@@ -65,11 +84,16 @@ def Resnet(block_size, num_classes):
         stax.Dense(num_classes, 1., 0.05))
 
 
-_, _, resnet_kernel_fn = Resnet(block_size=2, num_classes=10)
-resnet_kernel_fn = jit(resnet_kernel_fn, static_argnums=(2,))
+if HAS_NEURAL_TANGENTS:
+    _, _, resnet_kernel_fn = Resnet(block_size=2, num_classes=10)
+    resnet_kernel_fn = jit(resnet_kernel_fn, static_argnums=(2,))
+else:
+    resnet_kernel_fn = None
 
 
 def generate_resnet_ntk(X, Y, skip=25):
+    if not HAS_NEURAL_TANGENTS:
+        raise ImportError("neural_tangents library is required for generating ResNet NTK.")
     n = X.shape[0]
     m = Y.shape[0]
     K = np.zeros((n, m))
