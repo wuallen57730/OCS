@@ -23,7 +23,8 @@ def save_model(model, path):
     torch.save(model.cpu(), path)
 
 def load_model(path):
-    model = torch.load(path)
+    # PyTorch 2.6+ requires weights_only=False to load models containing custom classes
+    model = torch.load(path, weights_only=False)
     return model
 
 def save_task_model_by_policy(model, task, policy, exp_dir):

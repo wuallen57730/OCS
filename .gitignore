@@ -11,3 +11,5 @@ data/
 # Checkpoints - keep only init.pth for reproducibility
 # Benchmark checkpoints generated on Google Colab (Tesla T4 GPU)
 checkpoints/*/t_*.pth
+
+OPTIMIZATION_REPORT_zh-tw.md
