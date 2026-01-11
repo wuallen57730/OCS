@@ -120,20 +120,20 @@ model = torch.compile(model, mode='reduce-overhead')
 
 | Configuration  | Time (s) | Speedup   | Accuracy |
 | -------------- | -------- | --------- | -------- |
-| Original       | 248.36   | 1.00x     | 96.82%   |
-| vmap           | 202.38   | **1.23x** | 96.47%   |
-| vmap + AMP     | 215.51   | 1.15x     | 96.61%   |
-| vmap + compile | 212.42   | 1.17x     | 96.52%   |
-| Full Optimized | 219.73   | 1.13x     | 96.76%   |
+| Original       | 324.62   | 1.00x     | 96.81%   |
+| vmap           | 203.28   | **1.60x** | 97.00%   |
+| vmap + AMP     | 201.47   | 1.61x     | 96.37%   |
+| vmap + compile | 198.85   | 1.63x     | 95.96%   |
+| Full Optimized | 198.60   | 1.63x     | 96.58%   |
 
 ---
 
 ## Key Findings
 
-1. **vmap vectorization** shows the most significant improvement, achieving **1.23x speedup** while maintaining (or slightly improving) accuracy
-2. **AMP and torch.compile** have limited benefits for small models (MLP), actually adding extra overhead in this case
-3. **Pure vmap** is faster than combined optimizations, suggesting that simpler optimizations work better for small models
-4. All optimized versions maintain comparable accuracy (~96.5-96.9%), proving that optimizations don't affect convergence
+1. **vmap vectorization** shows the most significant improvement, achieving **1.60x speedup** while maintaining high accuracy
+2. **AMP and torch.compile** provide marginal additional gains, pushing the total speedup to **1.63x**
+3. Combined optimizations performed slightly better than pure vmap in this benchmark
+4. All optimized versions maintain comparable accuracy (~96-97%), proving that optimizations don't affect convergence
 
 ---
 

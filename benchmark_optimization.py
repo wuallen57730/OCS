@@ -107,7 +107,7 @@ def benchmark_vmap_only(config, loaders, exp_dir):
     print("Testing: vmap only")
     print("-" * 50)
     
-    from core import train_methods_mnist_optimized as train_methods
+    from core import train_methods_mnist_vectorized as train_methods
     train_methods.USE_COMPILE = False
     train_methods.USE_AMP = False
     
@@ -138,7 +138,7 @@ def benchmark_vmap_amp(config, loaders, exp_dir):
     print("Testing: vmap + AMP")
     print("-" * 50)
     
-    from core import train_methods_mnist_optimized as train_methods
+    from core import train_methods_mnist_vectorized as train_methods
     train_methods.USE_COMPILE = False
     train_methods.USE_AMP = True
     
@@ -169,7 +169,7 @@ def benchmark_vmap_compile(config, loaders, exp_dir):
     print("Testing: vmap + torch.compile")
     print("-" * 50)
     
-    from core import train_methods_mnist_optimized as train_methods
+    from core import train_methods_mnist_vectorized as train_methods
     train_methods.USE_COMPILE = True
     train_methods.USE_AMP = False
     
@@ -200,7 +200,7 @@ def benchmark_full_optimized(config, loaders, exp_dir):
     print("Testing: Full Optimized (vmap + AMP + compile)")
     print("-" * 50)
     
-    from core import train_methods_mnist_optimized as train_methods
+    from core import train_methods_mnist_vectorized as train_methods
     train_methods.USE_COMPILE = True
     train_methods.USE_AMP = True
     
@@ -284,7 +284,7 @@ def benchmark_per_sample_grads(stream_size=500):
     
     # Test vectorized method
     print("\nVectorized method (vmap):")
-    from core.train_methods_mnist_optimized import compute_per_sample_grads_vectorized
+    from core.train_methods_mnist_vectorized import compute_per_sample_grads_vectorized
     
     model_vmap = MLP(config).to(DEVICE)
     
