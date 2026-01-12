@@ -1,4 +1,4 @@
-# OCS Project Optimization Report
+# OCS Optimized Ver.
 
 ## Overview
 
@@ -107,7 +107,7 @@ model = torch.compile(model, mode='reduce-overhead')
 
 ---
 
-## Benchmark Results
+## Results
 
 ### Test Environment
 
@@ -116,35 +116,54 @@ model = torch.compile(model, mode='reduce-overhead')
 - **CUDA**: 12.6
 
 ### 1. MNIST (MLP)
+
 | Configuration  | Time (s) | Speedup   | Accuracy |
 | -------------- | -------- | --------- | -------- |
-| Original       | 324.62   | 1.00x     | 96.81%   |
-| vmap           | 203.28   | **1.60x** | 97.00%   |
-| vmap + AMP     | 201.47   | 1.61x     | 96.37%   |
-| Full Optimized | 198.60   | **1.63x** | 96.58%   |
+| Original       | 236.01   | 1.00x     | 96.46%   |
+| vmap           | 198.91   | 1.19x     | 96.58%   |
+| vmap + AMP     | 200.15   | 1.18x     | 96.63%   |
+| vmap + compile | 197.40   | **1.20x** | 96.76%   |
+| Full Optimized | 199.47   | 1.18x     | 96.35%   |
+
+**Micro-benchmark (Per-Sample Gradient Computation):**
+
+- Original: 4.56 ms
+- Vectorized: 4.40 ms
+- **Pure Gradient Speedup: 1.04x**
+
+> **Analysis**: The speedup for MNIST (MLP) is modest (~1.2x) compared to ResNet (~3.6x). This is because the MLP model is computationally lightweight. The overhead of individual gradient computations is already low (~4.5ms), so the relative gain from vectorization is limited by fixed overheads (data loading, optimizer steps, Python interpretation). `vmap` shines most on complex architectures where the backward pass is the dominant bottleneck.
 
 ### 2. CIFAR-10 (ResNet18)
-*Note: For ResNet models, `torch.compile` overhead was significant in this short benchmark, so the best performance comes from vmap+AMP.*
+
+_Note: For ResNet models, `torch.compile` overhead was significant in this short benchmark, so the best performance comes from vmap+AMP._
 
 | Configuration  | Time (s) | Speedup   | Accuracy |
 | -------------- | -------- | --------- | -------- |
 | Original       | 121.88   | 1.00x     | 51.40%   |
 | vmap           | 35.87    | 3.40x     | 45.40%   |
 | vmap + AMP     | 33.89    | **3.60x** | 48.40%   |
+| vmap+compile   | 1961.09  | 0.06x     | 54.20%   |
+| Full Optimized | 1240.25  | 0.10x     | 54.20%   |
 
 **Micro-benchmark (Per-Sample Gradient Computation):**
+
 - Original: 150.91 ms
 - Vectorized: 27.11 ms
 - **Pure Gradient Speedup: 5.57x**
 
 ### 3. Mixture Dataset (ResNet18)
+
 | Configuration  | Time (s) | Speedup   | Accuracy |
 | -------------- | -------- | --------- | -------- |
 | Original       | 37.24    | 1.00x     | 80.94%   |
 | vmap           | 15.41    | **2.42x** | 81.79%   |
 | vmap + AMP     | 16.84    | 2.21x     | 78.59%   |
+| vmap+compile   | 223.39   | 75.92     | 0.17     |
+| Full Optimized | 205.41   | 80.73     | 0.18     |
 
+======================================================================
 **Micro-benchmark (Per-Sample Gradient Computation):**
+
 - Original: 156.08 ms
 - Vectorized: 31.65 ms
 - **Pure Gradient Speedup: 4.93x**
@@ -153,39 +172,35 @@ model = torch.compile(model, mode='reduce-overhead')
 
 ## Key Findings
 
-1.  **Huge Speedup on Convnets**: Vectorization (`vmap`) delivers massive gains for ResNet architectures (**3.6x speedup** on CIFAR), far exceeding the gains on simple MLPs (1.6x).
-2.  **Gradient Bottleneck Removed**: The micro-benchmarks show that the specific operation of computing per-sample gradients is **~5-5.5x faster** with `vmap` compared to `autograd_hacks`.
-3.  **Compilation Overhead**: `torch.compile` is highly effective for simple models (MNIST) but introduces excessive overhead for complex models (ResNet) during short training runs. It is recommended primarily for long-running training jobs.
+1.  **Huge Speedup on Convnets**: Vectorization (`vmap`) delivers massive gains for ResNet architectures (**3.6x speedup** on CIFAR), far exceeding the gains on simple MLPs (1.2x).
+2.  **Gradient Bottleneck Removed**: The micro-benchmarks show that computing per-sample gradients is **~5-5.5x faster** with `vmap` for complex models (ResNet). For simple models (MLP), the original method is already efficient (4ms), so gains are smaller.
+3.  **Compilation Overhead**: `torch.compile` is highly effective for simple models (MNIST) but can introduce overhead for complex models (ResNet) during short training runs. It is recommended primarily for long-running training jobs.
 4.  **Accuracy Stability**: The optimized methods maintain comparable accuracy to the baseline, confirming the correctness of the implementation.
 
 ---
 
-## Prerequisites
+## Setup
 
 ```bash
 pip install -r requirements.txt
 ```
-
-**Required packages:**
-
-- PyTorch >= 2.0 (for torch.func support)
-- torchvision
-- numpy
-- scipy
 
 ---
 
 ## Run
 
 ```bash
-# Run the optimized version (recommended)
-python ocs_mnist_vectorized.py
-
+### MNIST
 # Run performance benchmark
-python benchmark_optimization.py
+python benchmark_optimization.py --task 3
 
-# Run the original version (for comparison)
-python ocs_mnist.py
+### CIFAR-10
+# Run performance benchmark (Recommended for verifying speedup)
+python benchmark_optimization_cifar.py --task 3
+
+### Mixture Dataset
+# Run performance benchmark
+python benchmark_optimization_mixture.py --tasks 3
 ```
 
 ---
@@ -195,12 +210,20 @@ python ocs_mnist.py
 ```
 OCS/
 ├── core/
-│   ├── train_methods_mnist.py           # Original version
-│   ├── train_methods_mnist_vectorized.py # vmap optimized version
-│   └── autograd_hacks.py                # Legacy per-sample gradients
-├── ocs_mnist.py                         # Original entry point
-├── ocs_mnist_vectorized.py              # vmap version entry point
-└── benchmark_optimization.py            # Performance benchmark script
+│   ├── train_methods_mnist.py              # Original MNIST version
+│   ├── train_methods_mnist_vectorized.py   # Optimized MNIST version
+│   ├── train_methods_cifar.py              # Original CIFAR version
+│   ├── train_methods_cifar_optimized.py    # Optimized CIFAR version
+│   ├── train_methods_mixture.py            # Original Mixture version
+│   ├── train_methods_mixture_optimized.py  # Optimized Mixture version
+│   └── autograd_hacks.py                   # Legacy per-sample gradients
+├── benchmark_optimization.py               # MNIST Benchmark script
+├── benchmark_optimization_cifar.py         # CIFAR-10 Benchmark script
+├── benchmark_optimization_mixture.py       # Mixture Dataset Benchmark script
+├── ocs_mnist_vectorized.py                 # MNIST vmap entry point
+├── ocs_mnist.py                            # MNIST Original entry point
+├── ocs_cifar.py                            # CIFAR Original entry point
+└── ocs_mixture.py                          # Mixture Original entry point
 ```
 
 ---
@@ -236,11 +259,3 @@ This optimization work is based on the following paper:
     url={https://openreview.net/pdf?id=f9D-5WNG4Nv}
 }
 ```
-
----
-
-## Author
-
-WU, Yu-Chen (Lima)
-
-Date: 2026/01/11
