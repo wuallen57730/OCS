@@ -158,8 +158,8 @@ _Note: For ResNet models, `torch.compile` overhead was significant in this short
 | Original       | 37.24    | 1.00x     | 80.94%   |
 | vmap           | 15.41    | **2.42x** | 81.79%   |
 | vmap + AMP     | 16.84    | 2.21x     | 78.59%   |
-| vmap+compile   | 223.39   | 75.92     | 0.17     |
-| Full Optimized | 205.41   | 80.73     | 0.18     |
+| vmap+compile   | 223.39   | 0.17x     | 75.92%   |
+| Full Optimized | 205.41   | 0.18x     | 80.73%   |
 
 ======================================================================
 **Micro-benchmark (Per-Sample Gradient Computation):**
